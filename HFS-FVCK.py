@@ -44,5 +44,8 @@ req=requests.get(url=url,headers=headers,cookies=cookie)
 question_list=json.loads(req.text).get('data').get('questions')
 for question in question_list:
     name=str(question['name'])
-    answer=str(question['answer'])
+    try:
+        answer=str(question['answer'])
+    except:
+        answer=""
     print(name+" "+answer)

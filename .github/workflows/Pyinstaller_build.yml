@@ -1,0 +1,57 @@
+name: 打包HFS-FVCK.py为exe
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: 安装python环境
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装requirements.txt
+        run: pip install -r requirements.txt
+
+      - name: 安装pyinstaller
+        run: pip install pyinstaller
+
+      - name: 下载图标
+        run: iwr -Uri "https://th7sdrive.herokuapp.com/OD05/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/omikuzi_char.ico" -OutFile "icon.ico"
+
+      - name: 打包单文件exe并移动至根目录
+        run: |
+          pyinstaller -F -i ./icon.ico ./HFS-FVCK.py
+          move ./dist/HFS-FVCK.exe ./
+
+      - name: 打包exe为压缩包
+        run: |
+          pyinstaller -D -i ./icon.ico ./HFS-FVCK.py
+          Compress-Archive -Path ./dist/HFS-FVCK/ -DestinationPath ./HFS-FVCK.zip
+        
+      - name: 上传Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: HFS-FVCK
+          path: dist/
+          
+      - name: 自动生成更新文档
+        run: write-output "CHANGELOG:${{ github.event.head_commit.message }}" | out-file -filepath ./CHANGELOG.txt
+        
+      - name: 上传Release
+        uses: ncipollo/release-action@v1.8.0
+        with:
+          artifacts: "./HFS-FVCK.exe,./HFS-FVCK.zip"
+          tag: ver-${{ github.sha }}
+          bodyFile: "./CHANGELOG.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
